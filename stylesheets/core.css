@@ -1,0 +1,16 @@
+body {
+  font-family: "Helvetica Neue", "Arial", "Trebuchet MS", "Lucida Grande";
+  font-size: 12px;
+  line-height: 18px;
+}
+
+
+.clear { zoom: 1; }
+.clear:after { display: block; visibility: hidden; clear: both; height: 0; content: "."; }
+
+#container {
+  padding: 20px;
+}
+
+h2 { font-size: 18px; }
+
