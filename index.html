@@ -13,8 +13,16 @@
   
     <h1>Examples: embeded</h1>
     
-    <div id="calendar">
+    <div id="embedded" class="clear">
     </div>
+    
+    
+    
+    <h1>Examples: popup</h1>
+    
+
+    <button id="popup">Open calendar</button>
+
     
     
   </div>
@@ -23,7 +31,8 @@
   <script type="text/javascript" src="javascripts/datepicker-fu.js"></script>
   <script type="text/javascript" charset="utf-8">
     
-    new UI.Calendar('calendar');
+    new UI.Calendar('embedded');
+    new UI.Calendar('popup', { popup: true });
   </script>
 </body>
 </html>

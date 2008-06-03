@@ -1,120 +1,5 @@
 var UI = {};
 
-UI.DateField = {
-  calendars: {},
-
-  toggle: function(id) {
-    if (!UI.DateField.calendars[id]) 
-      this.create(id);
-    
-    for (key in UI.DateField.calendars) {
-      UI.DateField.calendars[key].hide(id);
-    }
-    
-    UI.DateField.calendars[id].toggle();
-  },
-  
-  show: function(id) {    
-    UI.DateField.calendars[id].show();
-  },
-  
-  hide: function(id) {
-    UI.DateField.calendars[id].hide();
-  },
-  
-  create: function(id) {
-    UI.DateField.calendars[id] = new UI.DatePicker(id);
-  }
-};
-
-UI.DatePicker = Class.create({
-  initialize: function(input) {
-    this.input = $(input);
-    
-    this.element = new Element('div', { 
-      id: ('ui_calendar_' + input)
-    })
-    .setStyle({
-      position: 'absolute',
-      width: (this.input.getWidth() - 2) + 'px',
-      border: '1px solid #CCCCCC'
-    })
-    .hide();
-    document.body.insert(this.element);
-    
-    this.calendar = new UI.Calendar(this.element, {
-      theme: 'ical',
-      footer: true
-    });
-    
-    this.calendar
-      .observe('click', function(event) {
-        this.input.setValue(event.memo.formattedDate);
-        this.hide();
-      }.bind(this))
-      .observe('cancel', function(event) {
-        this.hide();
-      }.bind(this));
-      
-    this.element.observe('mouseover', function(event) {
-      this.clearTimer();
-    }.bind(this));  
-    
-    this.element.observe('mouseout', function(event) {
-      this.startTimer();
-    }.bind(this));
-    
-    this.shadow = new Shadow(this.element);
-  },
-
-  show: function() {
-    this.calendar.setSelectedDate(this.input.value);
-    
-    var offset = this.input.cumulativeOffset();
-
-    var dimensions = this.calendar.element.getDimensions();
-    
-    if ((this.input.cumulativeOffset()[1] + dimensions.height) > 
-        (document.viewport.getHeight() + document.viewport.getScrollOffsets()[1]) - 50) {
-          
-      this.element.setStyle({
-        top: (offset[1] - dimensions.height - 4) + 'px',
-        left: offset[0] + 'px'
-      })
-      .show();
-    } else {
-      this.element.setStyle({
-        top: (offset[1] + this.input.getHeight() + 2) + 'px',
-        left: offset[0] + 'px'
-      })
-      .show();
-    }
-    
-    this.shadow.show();
-    this.startTimer();
-  },
-  
-  clearTimer: function() {
-    if (this.timeoutId) {
-      window.clearTimeout(this.timeoutId);
-    }
-  },
-  
-  startTimer: function() {
-    this.clearTimer();
-    this.timeoutId = this.hide.bind(this).delay(2);
-  },
-  
-  hide: function() {
-    this.shadow.hide();
-    this.element.hide();
-  },
-  
-  toggle: function() {    
-    this[this.element.visible() ? 'hide' : 'show']();
-  }
-});
-
 Element.addMethods({
   center: function( container, element ) {
     element = $(element);
@@ -144,9 +29,10 @@ Element.addMethods({
 UI.Calendar = Class.create({
   options: {
     theme        : 'blue',
+    popup        : false,
     format       : '%m/%d/%Y',
     startWeekday : 0,
-    footer       : false,
+    footer       : true,
     startDate    : new Date()
   },
 
@@ -155,7 +41,11 @@ UI.Calendar = Class.create({
 
     this.selectedDate = this.convertDate(this.options.selectedDate);
 
-    this.element = $(element); 
+    if (this.options.popup)
+      this.initPopup(element);
+    else
+      this.element = $(element);
+    
     this.element.identify();
     
     this.container = new Element('div').addClassName('ui_calendar_container');
@@ -196,6 +86,26 @@ UI.Calendar = Class.create({
     if (!date) return null;
     
     return Object.isString(date) ? new Date(date) : date;
+  },
+  
+  initPopup: function(element) {
+    this.element = new Element('div')
+    .setStyle({
+      position: 'absolute'
+    })
+    .hide();
+    document.body.insert(this.element);
+    
+    this.button = $(element);
+    
+    $(this.button)
+      .observe('click', function(event) {
+        this.show();
+      }.bind(this));
+      
+    this.observe('cancel', function(event) {
+      this.hide();
+    }.bind(this));
   },
 
   update: function(newDate) {
@@ -257,7 +167,9 @@ UI.Calendar = Class.create({
     var day = element.date;
     this.selectedDay = day;
     
-    $w('selected selected_next selected_prev').each(function(e){ this.table.select('.'+e).invoke('removeClassName', e); }.bind(this));
+    $w('selected selected_next selected_prev').each(function(e){ 
+      this.table.select('.' +  e).invoke('removeClassName', e); 
+    }.bind(this));
     
     element.addClassName('selected');
     var next = element.next(), prev = element.previous();
@@ -381,24 +293,24 @@ UI.Calendar = Class.create({
         .update(name)
         .observe('click', onClick.bind(this)) });
     };
-    
-    var btnCn = createButton('Cancel', function(e) { 
-      this._hideSelector(); 
-    }.bind(this));
-    
+    var btnCn = createButton('Cancel', function(e) {
+       this._hideSelector();
+     }.bind(this));
+       
     var btnOk = createButton('OK', function(e) {
       this._hideSelector();
       this.update(new Date(input.value, select.value, 1));
     }.bind(this));
     
-    this.selector.insert({ 
-      bottom: new Element('div', { 
+    this.selector.insert(
+      new Element('div', { 
         textAlign : 'center', 
-        width     : '100%'
-      }).addClassName('ui_calendar_button_div')
-        .insert({ bottom: btnCn })
-        .insert({ bottom: btnOk })
-    });
+        width     : '100%',
+        className : 'ui_calendar_button_div'
+      })
+      .insert(btnCn)
+      .insert(btnOk)
+    );
   },
 
   buildHeader: function(date) {
@@ -460,21 +372,21 @@ UI.Calendar = Class.create({
             formattedDate: this.selectedDate.strftime(this.options.format) 
           });
         }.bind(this));
+        
+        
       var btnCnl = new Element('input', { type: 'button', className: 'ui_calendar_button', value: 'Cancel' })
         .observe('click', function(event) {
           this.fire('cancel');
         }.bind(this));
       
+      var footerCell = new Element('td', { colspan: 7 })
+        .insert(btnTdy);
+      
+      if (this.options.popup)
+        footerCell.insert(btnCnl);
+      
       this.table.insert(
-        new Element('tfoot')
-          .insert(
-            new Element('tr')
-              .insert(
-                new Element('td', { colspan: 7 })
-                  .insert(btnTdy)
-                  .insert(btnCnl)
-              )
-          )
+        new Element('tfoot').insert(new Element('tr').insert(footerCell))
       );
     }
   },
@@ -528,13 +440,34 @@ UI.Calendar = Class.create({
   setStartWeekday: function(start) {
     this.options.startWeekday = start;
     this.update(this.date);
+  },
+  
+  hide: function() {
+    this.element.hide();
+  },
+  
+  show: function() {
+    var offset = this.button.cumulativeOffset();
+
+    var dimensions = this.element.getDimensions();
+
+    if ((this.button.cumulativeOffset()[1] + dimensions.height) > 
+        (document.viewport.getHeight() + document.viewport.getScrollOffsets()[1]) - 50) {
+          
+      this.element.setStyle({
+        top: (offset[1] - dimensions.height - 4) + 'px',
+        left: offset[0] + 'px'
+      })
+      .show();
+    } else {
+      this.element.setStyle({
+        top: (offset[1] + this.button.getHeight() + 2) + 'px',
+        left: offset[0] + 'px'
+      })
+      .show();
+    }
   }
 });
-
-/*
-Interface: Date
-
-*/
 
 Object.extend(Date.prototype, {
 
